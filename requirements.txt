@@ -2,7 +2,7 @@ torch
 torchvision
 transformers
 datasets
-opencv-python
+opencv-python-headless
 facenet-pytorch        # MTCNN face detection
 scikit-learn
 streamlit
