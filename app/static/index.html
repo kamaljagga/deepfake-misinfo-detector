@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deepfake & Misinformation Detector</title>
+  <!-- PWA manifest link -->
+  <link rel="manifest" href="manifest.json">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #f0f0f0; padding: 2rem; }
+    h1  { font-size: 1.6rem; margin-bottom: 0.4rem; }
+    .sub { color: #888; font-size: 0.9rem; margin-bottom: 2rem; }
+    .card { background: #1a1a1a; border: 1px solid #333; border-radius: 12px;
+            padding: 1.5rem; margin-bottom: 1.5rem; }
+    .card h2 { font-size: 1rem; color: #aaa; margin-bottom: 1rem; text-transform: uppercase;
+               letter-spacing: 0.05em; }
+    input[type=file], textarea {
+      width: 100%; padding: 0.75rem; background: #111; border: 1px solid #333;
+      border-radius: 8px; color: #f0f0f0; font-size: 0.95rem; margin-bottom: 1rem; }
+    textarea { resize: vertical; min-height: 120px; }
+    button  { background: #7f77dd; color: white; border: none; padding: 0.75rem 1.5rem;
+              border-radius: 8px; cursor: pointer; font-size: 0.95rem; width: 100%; }
+    button:hover { background: #6b62cc; }
+    .result { margin-top: 1rem; padding: 1rem; border-radius: 8px;
+              background: #0f0f0f; border: 1px solid #333; display: none; }
+    .verdict { font-size: 1.5rem; font-weight: 600; }
+    .fake   { color: #f97316; }
+    .real   { color: #4ade80; }
+    .meta   { color: #888; font-size: 0.85rem; margin-top: 0.5rem; }
+    .loader { display: none; text-align: center; color: #666; padding: 1rem; }
+    .tabs   { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+    .tab    { padding: 0.5rem 1.2rem; border-radius: 20px; cursor: pointer;
+              background: #1a1a1a; border: 1px solid #333; color: #aaa; font-size: 0.9rem; }
+    .tab.active { background: #7f77dd; color: white; border-color: #7f77dd; }
+    .panel  { display: none; }
+    .panel.active { display: block; }
+  </style>
+</head>
+<body>
+  <h1>AI Detector</h1>
+  <p class="sub">Deepfake video + misinformation detection — fully local, no cloud</p>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('video')">Video / Image</div>
+    <div class="tab"        onclick="switchTab('text')">Text / News</div>
+  </div>
+
+  <!-- VIDEO PANEL -->
+  <div class="panel active" id="panel-video">
+    <div class="card">
+      <h2>Deepfake Detector</h2>
+      <input type="file" id="videoFile" accept="video/*,image/*">
+      <button onclick="analyzeVideo()">Analyze for Deepfakes</button>
+      <div class="loader" id="loaderVideo">Analyzing frames...</div>
+      <div class="result" id="resultVideo"></div>
+    </div>
+  </div>
+
+  <!-- TEXT PANEL -->
+  <div class="panel" id="panel-text">
+    <div class="card">
+      <h2>Misinformation Detector</h2>
+      <textarea id="newsText" placeholder="Paste a headline or news article excerpt..."></textarea>
+      <button onclick="analyzeText()">Check for Misinformation</button>
+      <div class="loader" id="loaderText">Running NLP analysis...</div>
+      <div class="result" id="resultText"></div>
+    </div>
+  </div>
+
+  <script>
+    const API = "http://localhost:5000/api"; // change to your hosted URL when deployed
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach((t, i) => {
+        t.classList.toggle('active', (tab === 'video' && i === 0) || (tab === 'text' && i === 1));
+      });
+      document.getElementById('panel-video').classList.toggle('active', tab === 'video');
+      document.getElementById('panel-text').classList.toggle('active', tab === 'text');
+    }
+
+    async function analyzeVideo() {
+      const file = document.getElementById('videoFile').files[0];
+      if (!file) return alert('Please select a file first.');
+      const loader = document.getElementById('loaderVideo');
+      const result = document.getElementById('resultVideo');
+      loader.style.display = 'block'; result.style.display = 'none';
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res  = await fetch(`${API}/analyze/video`, { method: 'POST', body: formData });
+        const data = await res.json();
+        const isFake = data.verdict === 'FAKE';
+        result.innerHTML = `
+          <div class="verdict ${isFake ? 'fake' : 'real'}">${isFake ? 'DEEPFAKE DETECTED' : 'APPEARS REAL'}</div>
+          <div class="meta">Fake frame ratio: ${(data.fake_ratio * 100).toFixed(1)}%
+          &nbsp;|&nbsp; Frames analyzed: ${data.frames_analyzed}
+          &nbsp;|&nbsp; Avg confidence: ${(data.avg_confidence * 100).toFixed(1)}%</div>`;
+        result.style.display = 'block';
+      } catch (e) {
+        result.innerHTML = `<div class="meta" style="color:#f87171">Error: ${e.message}</div>`;
+        result.style.display = 'block';
+      }
+      loader.style.display = 'none';
+    }
+
+    async function analyzeText() {
+      const text = document.getElementById('newsText').value.trim();
+      if (!text) return alert('Please enter some text first.');
+      const loader = document.getElementById('loaderText');
+      const result = document.getElementById('resultText');
+      loader.style.display = 'block'; result.style.display = 'none';
+
+      try {
+        const res  = await fetch(`${API}/analyze/text`, {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ text })
+        });
+        const data = await res.json();
+        const isFake = data.verdict === 'FALSE';
+        result.innerHTML = `
+          <div class="verdict ${isFake ? 'fake' : 'real'}">${isFake ? 'LIKELY MISINFORMATION' : 'APPEARS CREDIBLE'}</div>
+          <div class="meta">Confidence: ${(data.confidence * 100).toFixed(1)}%
+          &nbsp;|&nbsp; Misinfo score: ${(data.scores.false * 100).toFixed(1)}%</div>`;
+        result.style.display = 'block';
+      } catch (e) {
+        result.innerHTML = `<div class="meta" style="color:#f87171">Error: ${e.message}</div>`;
+        result.style.display = 'block';
+      }
+      loader.style.display = 'none';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+*.pth
+*.zip
+*.exe
+data/raw/faceforensics/
+data/raw/liar_dataset/
+dist/
+build/
+.env
+*.spec
