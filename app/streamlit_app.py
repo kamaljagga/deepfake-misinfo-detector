@@ -102,12 +102,18 @@ with tab1:
 
                     st.divider()
                     # ── Verdict ──
-                    if result["verdict"] == "FAKE":
-                        st.error(f"🔴 DEEPFAKE DETECTED", icon="🚨")
-                    elif result["verdict"] == "REAL":
-                        st.success(f"🟢 APPEARS REAL", icon="✅")
+                    # CHANGE TO — show uncertain when confidence is low:
+                    confidence = result["confidence"]
+                    if result["verdict"] == "FALSE" and confidence > 0.70:
+                        st.error("🔴 LIKELY MISINFORMATION", icon="🚨")
+                    elif result["verdict"] == "TRUE" and confidence > 0.70:
+                        st.success("🟢 APPEARS CREDIBLE", icon="✅")
                     else:
-                        st.warning(f"⚠️ UNDETERMINED", icon="⚠️")
+                        st.warning(
+                            f"⚠️ UNCERTAIN — model confidence too low ({confidence*100:.1f}%)\n\n"
+                            "Please verify this information from trusted sources.",
+                            icon="⚠️"
+                        )
 
                     # ── Metrics ──
                     col1, col2, col3 = st.columns(3)
