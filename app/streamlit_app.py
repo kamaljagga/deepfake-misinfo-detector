@@ -103,15 +103,15 @@ with tab1:
                     st.divider()
                     # ── Verdict ──
                     # CHANGE TO — show uncertain when confidence is low:
-                    confidence = result["confidence"]
-                    if result["verdict"] == "FALSE" and confidence > 0.70:
-                        st.error("🔴 LIKELY MISINFORMATION", icon="🚨")
-                    elif result["verdict"] == "TRUE" and confidence > 0.70:
-                        st.success("🟢 APPEARS CREDIBLE", icon="✅")
+                    confidence = result.get("confidence", result.get("avg_confidence", 0.0))
+                    if result["verdict"] == "FAKE" and confidence > 0.70:
+                        st.error("🔴 LIKELY DEEPFAKE", icon="🚨")
+                    elif result["verdict"] == "REAL" and confidence > 0.70:
+                        st.success("🟢 APPEARS REAL", icon="✅")
                     else:
                         st.warning(
                             f"⚠️ UNCERTAIN — model confidence too low ({confidence*100:.1f}%)\n\n"
-                            "Please verify this information from trusted sources.",
+                            "Please verify this media from trusted sources.",
                             icon="⚠️"
                         )
 
